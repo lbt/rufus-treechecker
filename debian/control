@@ -1,0 +1,20 @@
+Source: rufus-treechecker
+Section: ruby
+Priority: optional
+Maintainer: Debian Ruby Extras Maintainers <pkg-ruby-extras-maintainers@lists.alioth.debian.org>
+Uploaders:  <>
+DM-Upload-Allowed: yes
+Build-Depends: debhelper (>= 7.0.50~), gem2deb (>= 0.1.0)
+Standards-Version: 3.9.1
+#Vcs-Git: git://git.debian.org/collab-maint/libnet-jabber-loudmouth-perl.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/libnet-jabber-loudmouth-perl.git;a=summary
+Homepage: http://rufus.rubyforge.org
+
+Package: ruby-rufus-treechecker
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+# ruby_parser (>= 2.0.5), rake (>= 0), rspec (>= 2.0)
+Description: tests strings of Ruby code for unauthorized patterns (exit, eval, ...)
+ .\n tests strings of Ruby code for unauthorized patterns (exit, eval, ...)
+ .\n
+
