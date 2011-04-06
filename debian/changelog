@@ -1,5 +1,11 @@
-rufus-treechecker (1.0.4-1) UNRELEASED; urgency=low
+ruby-rufus-treechecker (1.0.4-2) unstable; urgency=low
 
-  * Initial release (Closes: #nnnn)
+  * Update to gem2deb 0.2.1
+
+ -- David Greaves <david@dgreaves.com>  Wed, 06 Apr 2011 21:19:57 +0100
+
+ruby-rufus-treechecker (1.0.4-1) UNRELEASED; urgency=low
+
+  * Initial release based on gem2deb
 
  -- David Greaves <david@ash.dgreaves.com>  Sat, 26 Mar 2011 14:54:21 +0000
