@@ -122,11 +122,12 @@ module Rufus
   #
   class TreeChecker
 
-    VERSION = '1.0.4'
+    VERSION = '1.0.8'
 
     # pretty-prints the sexp tree of the given rubycode
     #
     def ptree(rubycode)
+
       puts stree(rubycode)
     end
 
@@ -134,6 +135,7 @@ module Rufus
     # (thanks ruby_parser).
     #
     def stree(rubycode)
+
       "#{rubycode.inspect}\n =>\n#{parse(rubycode).inspect}"
     end
 
@@ -149,6 +151,7 @@ module Rufus
     end
 
     def to_s
+
       s = "#{self.class} (#{self.object_id})\n"
       s << "root_set :\n"
       s << @root_set.to_s
@@ -176,10 +179,7 @@ module Rufus
     #
     def clone
 
-      tc = TreeChecker.new
-      tc.instance_variable_set(:@root_set, @root_set.clone)
-      tc.instance_variable_set(:@set, @set.clone)
-      tc
+      Marshal.load(Marshal.dump(self))
     end
 
     # Adds a set of checks (rules) to this treechecker. Returns self.
@@ -194,6 +194,7 @@ module Rufus
     # Freezes the treechecker instance "in depth"
     #
     def freeze
+
       super
       @root_set.freeze
       @set.freeze
@@ -203,19 +204,15 @@ module Rufus
 
     class RuleSet
 
+      # Mostly for easier specs
+      #
+      attr_accessor :excluded_symbols, :accepted_patterns, :excluded_patterns
+
       def initialize
 
         @excluded_symbols = {} # symbol => exclusion_message
         @accepted_patterns = {} # 1st elt of pattern => pattern
         @excluded_patterns = {} # 1st elt of pattern => pattern, excl_message
-      end
-
-      def clone
-        rs = RuleSet.new
-        rs.instance_variable_set(:@excluded_symbols, @excluded_symbols.dup)
-        rs.instance_variable_set(:@accepted_patterns, @accepted_patterns.dup)
-        rs.instance_variable_set(:@excluded_patterns, @excluded_patterns.dup)
-        rs
       end
 
       def exclude_symbol(s, message)
@@ -236,26 +233,26 @@ module Rufus
 
       def check(sexp)
 
-        if sexp.is_a?(Symbol)
+        if sexp.is_a?(Symbol) and m = @excluded_symbols[sexp]
 
-          m = @excluded_symbols[sexp]
-          raise SecurityError.new(m) if m
+          raise SecurityError.new(m)
 
         elsif sexp.is_a?(Array)
 
           # accepted patterns are evaluated before excluded patterns
           # if one is found the excluded patterns are skipped
 
-          pats = @accepted_patterns[sexp.first]
-          pats.each { |pat| return if check_pattern(sexp, pat) } if pats
+          pats = @accepted_patterns[sexp.first] || []
+          return false if pats.find { |pat| check_pattern(sexp, pat) }
 
-          pats = @excluded_patterns[sexp.first]
-          return unless pats
+          pats = @excluded_patterns[sexp.first] || []
 
           pats.each do |pat, msg|
             raise SecurityError.new(msg) if check_pattern(sexp, pat)
           end
         end
+
+        true
       end
 
       def freeze
@@ -292,17 +289,29 @@ module Rufus
         s
       end
 
+      # Mostly a spec method
+      #
+      def ==(oth)
+
+        @excluded_symbols == oth.instance_variable_get(:@excluded_symbols) &&
+        @accepted_patterns == oth.instance_variable_get(:@accepted_patterns) &&
+        @excluded_patterns == oth.instance_variable_get(:@excluded_patterns)
+      end
+
       protected
 
       def check_pattern(sexp, pat)
 
         return false if sexp.length < pat.length
 
-        (1..pat.length-1).each do |i|
+        (1..pat.length - 1).each do |i|
+          #puts '.'
+          #p (pat[i], sexp[i])
+          #p (pat[i] != :any and pat[i] != sexp[i])
           return false if (pat[i] != :any and pat[i] != sexp[i])
         end
 
-        return true # we have a match
+        true # we have a match
       end
     end
 
@@ -352,33 +361,40 @@ module Rufus
     end
 
     def exclude_symbol(*args)
+
       args, message = extract_message(args)
       args.each { |a| @current_set.exclude_symbol(a, message) }
     end
 
     def exclude_fcall(*args)
+
       do_exclude_pair(:fcall, args)
     end
 
     def exclude_vcall(*args)
+
       do_exclude_pair(:vcall, args)
     end
 
     def exclude_fvcall(*args)
+
       do_exclude_pair(:fcall, args)
       do_exclude_pair(:vcall, args)
     end
 
     def exclude_call_on(*args)
+
       do_exclude_pair(:call, args)
     end
 
     def exclude_call_to(*args)
+
       args, message = extract_message(args)
       args.each { |a| @current_set.exclude_pattern([ :call, :any, a], message) }
     end
 
     def exclude_fvccall(*args)
+
       exclude_fvcall(*args)
       exclude_call_to(*args)
     end
@@ -393,7 +409,9 @@ module Rufus
     #     k = ::Kernel
     #
     def exclude_rebinding(*args)
+
       args, message = extract_message(args)
+
       args.each do |a|
         expand_class(a).each do |c|
           @current_set.exclude_pattern([ :lasgn, :any, c], message)
@@ -406,6 +424,7 @@ module Rufus
     # of classes
     #
     def exclude_access_to(*args)
+
       exclude_call_on *args
       exclude_rebinding *args
     end
@@ -417,7 +436,7 @@ module Rufus
       @current_set.exclude_symbol(:defn, 'method definitions are forbidden')
     end
 
-    # Bans the defintion and the [re]openening of classes
+    # Bans the definition and the [re]opening of classes
     #
     # a list of exceptions (classes) can be passed. Subclassing those
     # exceptions is permitted.
@@ -451,6 +470,9 @@ module Rufus
     #
     def exclude_global_vars
 
+      @current_set.accept_pattern([ :gvar, :$! ])
+        # "rescue => e" is accepted
+
       @current_set.exclude_symbol(:gvar, 'global vars are forbidden')
       @current_set.exclude_symbol(:gasgn, 'global vars are forbidden')
     end
@@ -477,6 +499,7 @@ module Rufus
     def exclude_backquotes
 
       @current_set.exclude_symbol(:xstr, 'backquotes are forbidden')
+      @current_set.exclude_symbol(:dxstr, 'backquotes are forbidden')
     end
 
     # Bans raise and throw
@@ -501,13 +524,18 @@ module Rufus
     #
     def do_check(sexp)
 
-      @set.check(sexp)
+      continue = @set.check(sexp)
 
-      return unless sexp.is_a?(Array) # check over, seems fine...
+      return unless continue
+        # found an accepted pattern, no need to dive into it
 
+      return unless sexp.is_a?(Array)
+        # check over, seems fine...
+
+      #
       # check children
 
-      sexp.each { |c| do_check c }
+      sexp.each { |c| do_check(c) }
     end
 
     # A simple parse (relies on ruby_parser currently)

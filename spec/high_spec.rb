@@ -19,7 +19,17 @@ describe Rufus::TreeChecker do
     end
 
     it 'does not block "1 + 1"' do
+
       lambda { tc.check("1 + 1") }.should_not raise_error
+    end
+
+    it 'does not block begin/rescue/end' do
+
+      tc.check(%{
+        begin
+        rescue => e
+        end
+      })
     end
 
     [
@@ -194,7 +204,8 @@ describe Rufus::TreeChecker do
 
     [
 
-      '`kill -9 whatever`'
+      '`kill -9 whatever`',
+      '[ 1, 2, 3 ].each { |i| `echo #{i}.txt` }'
 
     ].each do |code|
 
