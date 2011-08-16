@@ -17,7 +17,7 @@
 
 # norootforbuild
 Name:           rubygem-rufus-treechecker
-Version:        1.0.4
+Version:        1.0.8
 Release:        0
 %define mod_name rufus-treechecker
 #

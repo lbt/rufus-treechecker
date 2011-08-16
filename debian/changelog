@@ -1,3 +1,12 @@
+ruby-rufus-treechecker (1.0.8-1) unstable; urgency=low
+
+  * Upstream release
+  * exclude_backquotes now intercepting `x #{y} z`
+  * "rescue => e" not triggering "global vars forbidden" anymore
+  * clone then add_rules issue, the real fix
+
+ -- David Greaves <david@dgreaves.com>  Tue, 16 Aug 2011 21:46:55 +0000
+
 ruby-rufus-treechecker (1.0.4-2) unstable; urgency=low
 
   * Update to gem2deb 0.2.1
